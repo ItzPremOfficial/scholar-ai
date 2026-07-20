@@ -80,4 +80,3 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
             
         except Exception as e:
             st.error(f"Error connecting to AI: {e}")
-'@ | Out-File -FilePath .\app.py -Encoding utf8
