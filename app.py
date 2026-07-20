@@ -1,12 +1,14 @@
-﻿import streamlit as st
+import streamlit as st
 from groq import Groq
 
 st.set_page_config(page_title="ScholarAI", page_icon="🎓", layout="centered")
 st.title("🎓 ScholarAI Assistant")
-st.caption("Created by Prem Sahoo • Powered by Groq Engine")
+st.caption("Created by Prem Sahoo • Powered by Llama 3.3 Intelligence")
 
-client = Groq()
+# Using your secure key directly in the script initializer
+client = Groq(api_key="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")
 
+# 1. Maintain Full Chat Memory so it remembers previous questions
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -24,41 +26,40 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
         full_response = ""
         
         try:
+            # 2. Build the full chat history list to send to the AI
+            api_messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "IDENTITY: Your name is ScholarAI. You are a custom AI assistant. "
+                        "CRITICAL FACT: You were created and coded by Prem Sahoo in July of 2026. "
+                        "If anyone asks what your name is, who made you, or when you were built, "
+                        "proudly declare that you are ScholarAI, created by Prem Sahoo in July 2026. "
+                        "PERSONALITY & EXPERTISE: You are a highly advanced academic scholar, mathematician, "
+                        "and scientific researcher. You possess deep, complete knowledge of complex mathematics, "
+                        "trigonometric identities, calculus, and comprehensive sciences. Always maintain an "
+                        "intellectual, precise, educational, and deeply knowledgeable tone."
+                    )
+                }
+            ]
+            
+            # Append all previous messages from the conversation history
+            for m in st.session_state.messages:
+                api_messages.append({"role": m["role"], "content": m["content"]})
+            
+            # 3. Call the rock-solid, ultra-smart 70B model
             response_stream = client.chat.completions.create(
-                model="groq/compound",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "IDENTITY: Your name is ScholarAI. You are a custom AI assistant. "
-                            "CRITICAL FACT: You were created and coded by Prem Sahoo in July of 2026. "
-                            "If anyone asks what your name is, who made you, or when you were built, "
-                            "proudly declare that you are ScholarAI, created by Prem Sahoo in July 2026. "
-                            "PERSONALITY & EXPERTISE: Aside from this identity, you are a highly advanced academic scholar "
-                            "and researcher. Your expertise covers complex mathematics, comprehensive sciences, and academic "
-                            "subjects. You are also a journalist who relies heavily on verified, up-to-date facts. When a user "
-                            "asks about current events or news, use your web search tool to find reliable facts. "
-                            "Always maintain an intellectual, precise, educational, and deeply knowledgeable tone."
-                        )
-                    },
-                    {"role": "user", "content": user_query}
-                ],
+                model="llama-3.3-70b-versatile",
+                messages=api_messages,
                 stream=True,
             )
             
-            # This safely extracts the streaming text regardless of model structure variations
             for chunk in response_stream:
-                if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
-                    choice = chunk.choices[0]
-                    # Check for standard streaming text format
-                    if hasattr(choice, 'delta') and hasattr(choice.delta, 'content') and choice.delta.content is not None:
-                        full_response += choice.delta.content
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content is not None:
+                        full_response += delta.content
                         response_placeholder.markdown(full_response + "▌")
-                    # Fallback if the data comes back in an alternative dictionary/text layer
-                    elif isinstance(choice, dict) and 'delta' in choice and 'content' in choice['delta']:
-                        if choice['delta']['content'] is not None:
-                            full_response += choice['delta']['content']
-                            response_placeholder.markdown(full_response + "▌")
                 
             response_placeholder.markdown(full_response)
             st.session_state.messages.append({"role": "assistant", "content": full_response})
