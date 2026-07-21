@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from tavily import TavilyClient
 
 st.set_page_config(page_title="ScholarAI", page_icon="🎓", layout="centered")
@@ -10,8 +11,8 @@ st.caption("Created by Prem Sahoo • Powered by Google Gemini & Tavily Search")
 GEMINI_KEY = "AQ.Ab8RN6Itd_4nGiiOuV1cYN7uUkdUSshiyYV8jQskHmsXhcspNw"
 TAVILY_KEY = "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"
 
-# Initialize Engines
-genai.configure(api_key=GEMINI_KEY)
+# Initialize Upgraded Next-Gen Engines
+client = genai.Client(api_key=GEMINI_KEY)
 tavily = TavilyClient(api_key=TAVILY_KEY)
 
 if "messages" not in st.session_state:
@@ -37,6 +38,7 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
             search_result = "No real-time search context available."
         
         try:
+            # Reconstruct the system instructions and layout for the new Client structure
             system_instruction = (
                 "IDENTITY: Your name is ScholarAI. You are a custom AI assistant. "
                 "CRITICAL FACT: You were created and coded by Prem Sahoo in July of 2026. "
@@ -49,18 +51,23 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
                 f"\n\nREAL-TIME SEARCH CONTEXT FROM THE INTERNET:\n{search_result}"
             )
             
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                system_instruction=system_instruction
+            # Format chat tracking history arrays correctly for next-gen models
+            formatted_contents = []
+            for m in st.session_state.messages:
+                # Map roles correctly to match user/model expectations
+                role_val = "user" if m["role"] == "user" else "model"
+                formatted_contents.append(
+                    types.Content(role=role_val, parts=[types.Part.from_text(text=m["content"])])
+                )
+            
+            # Requesting stream generation over the optimized model endpoint
+            response_stream = client.models.generate_content_stream(
+                model='gemini-1.5-flash',
+                contents=formatted_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction
+                )
             )
-            
-            chat_history = []
-            for m in st.session_state.messages[:-1]:
-                role_mapping = "user" if m["role"] == "user" else "model"
-                chat_history.append({"role": role_mapping, "parts": [m["content"]]})
-            
-            chat = model.start_chat(history=chat_history)
-            response_stream = chat.send_message(user_query, stream=True)
             
             for chunk in response_stream:
                 if chunk.text:
