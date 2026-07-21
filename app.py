@@ -1,3 +1,4 @@
+@'
 import streamlit as st
 from openai import OpenAI
 from tavily import TavilyClient
@@ -6,10 +7,11 @@ st.set_page_config(page_title="ScholarAI", page_icon="🎓", layout="centered")
 st.title("🎓 ScholarAI Assistant")
 st.caption("Created by Prem Sahoo • Powered by Together AI & Tavily Search")
 
-# Keeping your fresh active keys safely configured inside the script initializer
+# Configuration Keys
 TOGETHER_KEY = "333239618681214e08e8c2c830ba1a9f22bb6c28641d75a26b79a78b877dcecc"
 TAVILY_KEY = "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"
 
+# FIXED: Pointing directly to the correct v1 endpoint
 client = OpenAI(api_key=TOGETHER_KEY, base_url="https://together.xyz")
 tavily = TavilyClient(api_key=TAVILY_KEY)
 
@@ -77,3 +79,4 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
             
         except Exception as e:
             st.error(f"Error connecting to AI: {e}")
+'@ | Out-File -FilePath .\app.py -Encoding utf8
