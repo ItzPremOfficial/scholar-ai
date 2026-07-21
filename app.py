@@ -1,17 +1,16 @@
 import streamlit as st
-from groq import Groq
+from openai import OpenAI
 from tavily import TavilyClient
 
 st.set_page_config(page_title="ScholarAI", page_icon="🎓", layout="centered")
 st.title("🎓 ScholarAI Assistant")
-st.caption("Created by Prem Sahoo • Powered by Llama 3.3 & Live Real-Time Search")
+st.caption("Created by Prem Sahoo • Powered by Together AI & Tavily Search")
 
-# Configuration Keys
-GROQ_KEY = "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"
+# Keeping your fresh active keys safely configured inside the script initializer
+TOGETHER_KEY = "333239618681214e08e8c2c830ba1a9f22bb6c28641d75a26b79a78b877dcecc"
 TAVILY_KEY = "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"
 
-# Initialize Engines
-client = Groq(api_key=GROQ_KEY)
+client = OpenAI(api_key=TOGETHER_KEY, base_url="https://together.xyz")
 tavily = TavilyClient(api_key=TAVILY_KEY)
 
 if "messages" not in st.session_state:
@@ -30,9 +29,9 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
         response_placeholder = st.empty()
         full_response = ""
         
-        # Step 1: Execute Live Internet Search for up-to-date facts
         try:
-            search_result = tavily.get_search_context(query=user_query, search_depth="basic")
+            with st.spinner("Searching the web..."):
+                search_result = tavily.get_search_context(query=user_query, search_depth="basic")
         except Exception:
             search_result = "No real-time search context available."
         
@@ -45,10 +44,10 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
                         "CRITICAL FACT: You were created and coded by Prem Sahoo in July of 2026. "
                         "If anyone asks what your name is, who made you, or when you were built, "
                         "proudly declare that you are ScholarAI, created by Prem Sahoo in July 2026. "
-                        "PERSONALITY & EXPERTISE: You are a highly advanced academic scholar and a deeply resourceful researcher. "
-                        "You utilize live web search contexts to supply accurate, up-to-the-minute details on current events, "
-                        "stock market shifts, and news. Aside from current events, you possess complete knowledge of advanced mathematics, "
-                        "trigonometric identities, and complex sciences. Always keep an intellectual, precise, educational, and deeply knowledgeable tone."
+                        "PERSONALITY & EXPERTISE: Aside from this identity, you are a highly advanced academic scholar "
+                        "and researcher. Your expertise covers complex mathematics, comprehensive sciences, and academic "
+                        "subjects. You are also a journalist who relies heavily on verified, up-to-date facts. "
+                        "Always maintain an intellectual, precise, educational, and deeply knowledgeable tone."
                     )
                 },
                 {
@@ -57,13 +56,11 @@ if user_query := st.chat_input("Ask ScholarAI a question..."):
                 }
             ]
             
-            # Add context history
             for m in st.session_state.messages:
                 api_messages.append({"role": m["role"], "content": m["content"]})
             
-            # Step 2: Use the rock-solid, smart 70B model with the search results
             response_stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
                 messages=api_messages,
                 stream=True,
             )
